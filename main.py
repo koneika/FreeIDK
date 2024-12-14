@@ -1,15 +1,14 @@
 import asyncio
 from aiogram import Bot, Dispatcher
-from aiogram.client.bot import DefaultBotProperties  # Для указания parse_mode и других параметров
+from aiogram.client.bot import DefaultBotProperties  # Для указания parse_mode
 from handlers import register_handlers
-
-API_TOKEN = "8166219765:AAHzo-URTBei85_Zww_0DOP72Ihk7gQKRjQ"
+from config import API_TOKEN  # Импортируем секретный код из config.py
 
 async def main():
-    # Инициализируем бота с помощью DefaultBotProperties для установки parse_mode
+    # Инициализируем бота с токеном из config.py
     bot = Bot(
         token=API_TOKEN,
-        default=DefaultBotProperties(parse_mode="HTML")  # Устанавливаем форматирование HTML по умолчанию
+        default=DefaultBotProperties(parse_mode="HTML")
     )
     dp = Dispatcher()
 
@@ -22,3 +21,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+

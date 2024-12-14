@@ -3,6 +3,9 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKe
 
 router = Router()
 
+digit = 1000
+tokens = 100000
+
 @router.message(F.text == "/start")
 async def start_command(message: Message):
     # Кнопки стартового меню
@@ -10,7 +13,10 @@ async def start_command(message: Message):
     inline_btn2 = InlineKeyboardButton(text="Вторая кнопка", callback_data="second_button_pressed")
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[inline_btn1, inline_btn2]])
 
-    await message.answer("Привет! Выберите одну из кнопок:", reply_markup=keyboard)
+    await message.answer("Click on the button for choose the ChatGPT-4o or the AIstudio below:\n" +
+                         "!!!For the exams, forever fuck use ChatGPT-4o, my advice!!!\n" +
+                         "ChatGPT-4o - " + str(digit) + "/" + "1000 " + "asks\n" + 
+                         "AIstudio - " + str(tokens) + "/" + "100000 " + "tokens", reply_markup=keyboard)
 
 
 @router.callback_query(F.data == "button_pressed")

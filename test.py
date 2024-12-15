@@ -1,3 +1,4 @@
+
 import undetected_chromedriver as uc
 import time
 from selenium.webdriver.common.by import By
@@ -16,11 +17,7 @@ def get_last_bot_response(driver):
         return f"Ошибка получения ответа: {e}"
 
 def wait_for_stable_response(driver, old_count, timeout=15):
-    """
-    Ждёт, пока у бота появится новое сообщение, и оно стабилизируется (не меняется).
-    old_count - число ответов до отправки запроса.
-    timeout - максимально время ожидания (в секундах).
-    """
+    """Ждёт, пока у бота появится новое сообщение, и оно стабилизируется (не меняется)."""
     response_selector = "div.markdown.prose"
     start_time = time.time()
     
@@ -47,6 +44,55 @@ def wait_for_stable_response(driver, old_count, timeout=15):
 
     return stable_text if stable_text else last_text
 
+def perform_login(driver, email, password):
+    """Выполняет вход на сайт: вводит email, нажимает 'Continue', вводит пароль и завершает авторизацию."""
+    try:
+        # Локаторы для элементов
+        login_button_selector = "button[data-testid='login-button']"
+        email_input_selector = "input[type='email']"
+        password_input_selector = "input[type='password']"
+        email_continue_button_selector = "button.continue-btn"  # Селектор для 'Continue' после email
+        password_continue_button_selector = "button._button-login-password"  # Селектор для 'Continue' после пароля
+
+        # Шаг 1: Нажать на кнопку "Log in"
+        login_button = WebDriverWait(driver, 20).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, login_button_selector))
+        )
+        login_button.click()
+        print("Кнопка 'Log in' нажата.")
+
+        # Шаг 2: Ввести email
+        email_input = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, email_input_selector))
+        )
+        email_input.send_keys(email)
+        print(f"Email введён: {email}")
+
+        # Шаг 3: Нажать кнопку "Continue" после ввода email
+        email_continue_button = WebDriverWait(driver, 20).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, email_continue_button_selector))
+        )
+        email_continue_button.click()
+        print("Кнопка 'Continue' нажата после ввода email.")
+
+        # Шаг 4: Ввести пароль
+        password_input = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, password_input_selector))
+        )
+        password_input.send_keys(password)
+        print(f"Пароль введён: {'*' * len(password)}")
+
+        # Шаг 5: Нажать кнопку "Continue" после ввода пароля
+        password_continue_button = WebDriverWait(driver, 20).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, password_continue_button_selector))
+        )
+        password_continue_button.click()
+        print("Кнопка 'Continue' нажата после ввода пароля.")
+
+    except Exception as e:
+        print(f"Ошибка при попытке логина: {e}")
+
+
 def chat_with_bot():
     options = uc.ChromeOptions()
     options.add_argument("--no-sandbox")
@@ -56,7 +102,7 @@ def chat_with_bot():
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--incognito")
-    options.add_argument("--headless=new")  # Включаем headless режим
+    #options.add_argument("--headless=new")  # Включаем headless режим
     
     # Указываем виртуальный дисплей
     options.add_argument("--window-size=1920,1080")
@@ -66,6 +112,12 @@ def chat_with_bot():
     driver.get("https://chat.openai.com")
 
     try:
+        # Ваши данные для логина
+        email = ""
+        password = ""
+
+        perform_login(driver, email, password)
+
         input_selector = "div.ProseMirror[contenteditable='true']"
         send_button_selector = "button[data-testid='send-button']"
         response_selector = "div.markdown.prose"
@@ -86,7 +138,7 @@ def chat_with_bot():
             input_field.click()
 
             for _ in range(50):
-                input_field.send_keys("\b")
+                input_field.send_keys("")
             
             input_field.send_keys(user_message)
 

@@ -45,7 +45,7 @@ def wait_for_stable_response(driver, old_count, timeout=15):
     return stable_text if stable_text else last_text
 
 def perform_login(driver, email, password):
-    """Выполняет вход на сайт: вводит email, нажимает 'Continue', вводит пароль и завершает авторизацию."""
+    """Выполняет вход на сайт: вводит email, нажимает 'Continue', вводит пароль, код и завершает авторизацию."""
     try:
         # Локаторы для элементов
         login_button_selector = "button[data-testid='login-button']"
@@ -53,6 +53,9 @@ def perform_login(driver, email, password):
         password_input_selector = "input[type='password']"
         email_continue_button_selector = "button.continue-btn"  # Селектор для 'Continue' после email
         password_continue_button_selector = "button._button-login-password"  # Селектор для 'Continue' после пароля
+        code_input_selector = "input._codeInput_p12g4_28"  # Селектор для ввода кода
+        #code_submit_button_selector = password_continue_button_selector  # Кнопка может совпадать с предыдущими
+        code_input_selector2 = "button._continueButton_p12g4_42"
 
         # Шаг 1: Нажать на кнопку "Log in"
         login_button = WebDriverWait(driver, 20).until(
@@ -89,8 +92,25 @@ def perform_login(driver, email, password):
         password_continue_button.click()
         print("Кнопка 'Continue' нажата после ввода пароля.")
 
+        # Шаг 6: Ввести код из почты
+        code_input = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, code_input_selector))
+        )
+        code = input("Введите код из почты: ")
+        code_input.send_keys(code)
+        print("Код введён.")
+
+        # Шаг 7: Нажать кнопку "Continue" после ввода кода
+        code_submit_button = WebDriverWait(driver, 20).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, code_input_selector2))
+        )
+        code_submit_button.click()
+        print("Кнопка 'Continue' нажата после ввода кода.")
+
+
     except Exception as e:
         print(f"Ошибка при попытке логина: {e}")
+
 
 
 def chat_with_bot():
@@ -113,8 +133,8 @@ def chat_with_bot():
 
     try:
         # Ваши данные для логина
-        email = ""
-        password = ""
+        email = input("email: ")
+        password = input("password: ")
 
         perform_login(driver, email, password)
 

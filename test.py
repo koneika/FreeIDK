@@ -126,13 +126,7 @@ def perform_login(driver, email, password):
 
 def menu():
     accounts = load_accounts()
-    driver = create_browser()
-
-    if not driver:
-        print("Не удалось создать браузер. Программа завершена.")
-        return
-
-    open_site(driver, "https://chat.openai.com")
+    drivers = []  # Список для хранения активных браузеров
 
     while True:
         print("\nМеню:")
@@ -153,7 +147,13 @@ def menu():
         elif choice == "2":
             for email, creds in accounts.items():
                 print(f"Логин для {email}...")
+                driver = create_browser()
+                if not driver:
+                    print("Не удалось создать браузер для аккаунта.")
+                    continue
+                open_site(driver, "https://chat.openai.com")
                 perform_login(driver, creds['email'], creds['password'])
+                drivers.append(driver)  # Сохраняем браузер
 
         elif choice == "3":
             email = input("Введите email для удаления: ").strip()
@@ -165,8 +165,9 @@ def menu():
                 print(f"Аккаунт {email} не найден.")
 
         elif choice == "4":
-            print("Выход из программы.")
-            driver.quit()
+            print("Выход из программы. Закрытие всех браузеров...")
+            for driver in drivers:
+                driver.quit()
             break
 
         else:

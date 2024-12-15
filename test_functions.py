@@ -11,6 +11,9 @@ from accounts_manager import load_accounts, save_accounts
 
 logger = logging.getLogger(__name__)
 
+# Dictionary to store browser instances per account
+browsers = {}
+
 def create_browser(profile_dir=None):
     options = uc.ChromeOptions()
     if profile_dir:
@@ -22,7 +25,7 @@ def create_browser(profile_dir=None):
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
-    # options.add_argument("--headless=new")  # Раскомментируйте, если хотите запустить браузер в headless-режиме
+    # options.add_argument("--headless=new")  # Uncomment to run in headless mode
 
     try:
         driver = uc.Chrome(options=options)
@@ -167,17 +170,30 @@ def send_query(driver, query):
         return "An error occurred while sending the request."
 
 def login_and_send_query(email, password, query):
-    driver = create_browser()
-    if not driver:
-        return "Failed to create browser."
+    # Check if a browser for this account already exists
+    if email in browsers:
+        driver = browsers[email]
+        logger.info(f"Using existing browser for account: {email}")
+    else:
+        driver = create_browser()
+        if not driver:
+            return "Failed to create browser."
 
-    open_site(driver)
-    login_success = perform_login(driver, email, password)
-    if not login_success:
-        driver.quit()
-        return "Failed to log into the account."
+        open_site(driver)
+        login_success = perform_login(driver, email, password)
+        if not login_success:
+            driver.quit()
+            return "Failed to log into the account."
+
+        browsers[email] = driver  # Save browser for reuse
 
     response = send_query(driver, query)
-    # Close the browser after getting the response
-    driver.quit()
     return response
+
+def close_all_browsers():
+    for email, driver in browsers.items():
+        try:
+            driver.quit()
+            logger.info(f"Browser for account {email} closed.")
+        except Exception as e:
+            logger.error(f"Error closing browser for account {email}: {e}")

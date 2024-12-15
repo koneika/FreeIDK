@@ -16,7 +16,7 @@ def load_accounts():
                 logger.info("Accounts loaded successfully.")
                 return accounts
             except json.JSONDecodeError:
-                logger.error("Cannot decode accounts.json. Overwriting the file.")
+                logger.error("Cannot decode accounts.json. Starting with an empty accounts list.")
     else:
         logger.info("accounts.json does not exist. Starting with an empty accounts list.")
     return {}

@@ -6,7 +6,6 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.bot import DefaultBotProperties
 from handlers import router
 from config import API_TOKEN
-from test_functions import close_all_browsers
 
 import signal
 import sys
@@ -26,7 +25,6 @@ logger = logging.getLogger(__name__)
 async def shutdown(bot: Bot):
     logger.info("Shutting down bot...")
     await bot.close()
-    close_all_browsers()
     logger.info("Bot shutdown complete.")
     sys.exit()
 

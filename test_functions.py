@@ -11,9 +11,6 @@ from accounts_manager import load_accounts, save_accounts
 
 logger = logging.getLogger(__name__)
 
-# Dictionary to store browser instances per account
-browsers = {}
-
 def create_browser(profile_dir=None):
     options = uc.ChromeOptions()
     if profile_dir:
@@ -25,7 +22,7 @@ def create_browser(profile_dir=None):
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
-    # options.add_argument("--headless=new")  # Uncomment to run in headless mode
+    # options.add_argument("--headless=new")  # При необходимости можно включить
 
     try:
         driver = uc.Chrome(options=options)
@@ -98,11 +95,10 @@ def perform_login(driver, email, password):
 
         # Check if code input is required (2FA)
         try:
-            code_input = WebDriverWait(driver, 10).until(
+            WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "input._codeInput_p12g4_28"))
             )
-            logger.info("Two-factor authentication required, but automated input is not handled.")
-            # Cannot handle 2FA automatically
+            logger.info("Two-factor authentication required, but not handled automatically.")
         except Exception:
             logger.info("No two-factor authentication required.")
 
@@ -169,31 +165,34 @@ def send_query(driver, query):
         logger.error(f"Error sending query: {e}")
         return "An error occurred while sending the request."
 
-def login_and_send_query(email, password, query):
-    # Check if a browser for this account already exists
-    if email in browsers:
-        driver = browsers[email]
-        logger.info(f"Using existing browser for account: {email}")
-    else:
-        driver = create_browser()
-        if not driver:
-            return "Failed to create browser."
+def login_and_send_query(email, password, query, browser=None, logged_in=False):
+    """
+    Обновленная функция:
+    - Если browser is None или logged_in=False, логинимся заново.
+    - Если browser есть и logged_in=True, сразу отправляем запрос.
+    Возвращает: (response, browser, logged_in)
+    """
+    # Если нужно – логинимся
+    if browser is None or not logged_in:
+        if browser is None:
+            browser = create_browser()
+            if not browser:
+                return ("Failed to create browser.", None, False)
 
-        open_site(driver)
-        login_success = perform_login(driver, email, password)
+        open_site(browser)
+        login_success = perform_login(browser, email, password)
         if not login_success:
-            driver.quit()
-            return "Failed to log into the account."
+            browser.quit()
+            return ("Failed to log into the account.", None, False)
+        logged_in = True
 
-        browsers[email] = driver  # Save browser for reuse
-
-    response = send_query(driver, query)
-    return response
+    # Отправка запроса
+    response = send_query(browser, query)
+    return (response, browser, logged_in)
 
 def close_all_browsers():
-    for email, driver in browsers.items():
-        try:
-            driver.quit()
-            logger.info(f"Browser for account {email} closed.")
-        except Exception as e:
-            logger.error(f"Error closing browser for account {email}: {e}")
+    """
+    Закрывает все браузеры.
+    """
+    # Эта функция теперь управляется в handlers.py, поэтому можно оставить её пустой или удалить
+    pass

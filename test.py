@@ -6,12 +6,30 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+def save_cookies(driver, path):
+    """Сохраняет куки в файл."""
+    with open(path, "w") as file:
+        cookies = driver.get_cookies()
+        json.dump(cookies, file, indent=4)  # Добавлено форматирование для удобства отладки
+        print("Куки сохранены.")
+
+
+def load_cookies(driver, path):
+    if os.path.exists(path):
+        with open(path, "r") as file:
+            cookies = json.load(file)
+            for cookie in cookies:
+                driver.add_cookie(cookie)
+        print(f"Куки загружены: {cookies}")
+
+
 def is_logged_in(driver):
     """Проверяет, залогинен ли пользователь на основе куки."""
     try:
         cookies = driver.get_cookies()
+        print(f"Все куки: {cookies}")
         for cookie in cookies:
-            if cookie.get("name") == "_session":
+            if cookie.get("name") == "__Secure-next-auth.session-token":  # Проверяем корректную куку
                 print("Пользователь уже залогинен.")
                 return True
         print("Куки сессии не найдены.")
@@ -20,7 +38,9 @@ def is_logged_in(driver):
         print(f"Ошибка проверки логина: {e}")
         return False
 
-def perform_login(driver, email, password):
+
+
+def perform_login(driver, email, password, cookie_path):
     """Выполняет вход, если пользователь не залогинен."""
     try:
         login_button_selector = "button[data-testid='login-button']"
@@ -74,6 +94,8 @@ def perform_login(driver, email, password):
         code_submit_button.click()
         print("Кнопка 'Continue' нажата после ввода кода.")
 
+        save_cookies(driver, cookie_path)
+
     except Exception as e:
         print(f"Ошибка при попытке логина: {e}")
 
@@ -90,8 +112,46 @@ def delete_profile_data(profile_path):
     else:
         print("Данные профиля не найдены.")
 
+def chat_with_bot_session(driver):
+    """Начинает сессию общения с ботом."""
+    input_selector = "div.ProseMirror[contenteditable='true']"
+    send_button_selector = "button[data-testid='send-button']"
+    response_selector = "div.markdown.prose"
+
+    WebDriverWait(driver, 60).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, input_selector))
+    )
+
+    print("Привет! Чем могу помочь?")
+
+    while True:
+        user_message = input("Вы: ")
+        if user_message.lower() in ["выход", "exit"]:
+            print("Завершение работы.")
+            break
+
+        input_field = driver.find_element(By.CSS_SELECTOR, input_selector)
+        input_field.click()
+
+        input_field.clear()
+        input_field.send_keys(user_message)
+
+        send_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, send_button_selector))
+        )
+
+        old_responses = driver.find_elements(By.CSS_SELECTOR, response_selector)
+        old_count = len(old_responses)
+
+        send_button.click()
+        print("Бот думает...")
+
+        bot_response = wait_for_stable_response(driver, old_count)
+        print(f"Бот: {bot_response}")
+
 def chat_with_bot():
     profile_path = "./user_data"
+    cookie_path = "cookies.json"
     options = uc.ChromeOptions()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-blink-features=AutomationControlled")
@@ -104,6 +164,8 @@ def chat_with_bot():
     options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36")
     options.add_argument(f"--user-data-dir={profile_path}")
 
+    driver = None
+
     while True:
         print("\nМеню:")
         print("1. Войти в аккаунт")
@@ -112,63 +174,40 @@ def chat_with_bot():
         choice = input("Выберите действие: ")
 
         if choice == "1":
-            if not os.path.exists(profile_path):
-                os.makedirs(profile_path)
+            if driver is None:
+                if not os.path.exists(profile_path):
+                    os.makedirs(profile_path)
 
-            driver = uc.Chrome(options=options)
-            driver.get("https://chat.openai.com")
+                driver = uc.Chrome(options=options)
+                driver.get("https://chat.openai.com")
+
+                if os.path.exists(cookie_path):
+                    load_cookies(driver, cookie_path)
+                    driver.refresh()
 
             try:
-                email = input("Email: ")
-                password = input("Password: ")
-
                 if not is_logged_in(driver):
-                    perform_login(driver, email, password)
+                    email = input("Email: ")
+                    password = input("Password: ")
+                    perform_login(driver, email, password, cookie_path)
 
-                input_selector = "div.ProseMirror[contenteditable='true']"
-                send_button_selector = "button[data-testid='send-button']"
-                response_selector = "div.markdown.prose"
-
-                WebDriverWait(driver, 60).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, input_selector))
-                )
-
-                print("Привет! Чем могу помочь?")
-
-                while True:
-                    user_message = input("Вы: ")
-                    if user_message.lower() in ["выход", "exit"]:
-                        print("Завершение работы.")
-                        break
-
-                    input_field = driver.find_element(By.CSS_SELECTOR, input_selector)
-                    input_field.click()
-
-                    input_field.clear()
-                    input_field.send_keys(user_message)
-
-                    send_button = WebDriverWait(driver, 10).until(
-                        EC.element_to_be_clickable((By.CSS_SELECTOR, send_button_selector))
-                    )
-
-                    old_responses = driver.find_elements(By.CSS_SELECTOR, response_selector)
-                    old_count = len(old_responses)
-
-                    send_button.click()
-                    print("Бот думает...")
-
-                    bot_response = wait_for_stable_response(driver, old_count)
-                    print(f"Бот: {bot_response}")
+                chat_with_bot_session(driver)
 
             except Exception as e:
                 print(f"Произошла ошибка: {e}")
-            finally:
-                driver.quit()
 
         elif choice == "2":
+            if driver:
+                driver.quit()
+                driver = None
             delete_profile_data(profile_path)
+            if os.path.exists(cookie_path):
+                os.remove(cookie_path)
+                print("Файл с куки удалён.")
 
         elif choice == "3":
+            if driver:
+                driver.quit()
             print("Выход из программы.")
             break
 

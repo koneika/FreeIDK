@@ -124,6 +124,59 @@ def perform_login(driver, email, password):
         driver.save_screenshot("error_screenshot.png")
         print("Скриншот сохранён: error_screenshot.png")
 
+def chat_with_account(driver):
+    input_selector = "div.ProseMirror[contenteditable='true']"
+    while True:
+        user_input = input("Ваш запрос (введите 'exit' для выхода): ").strip()
+        if user_input.lower() == 'exit':
+            break
+
+        try:
+            input_field = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, input_selector))
+            )
+            input_field.click()
+            input_field.clear()
+            input_field.send_keys(user_input)
+
+            send_button_selector = "button[data-testid='send-button']"
+            send_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, send_button_selector))
+            )
+            send_button.click()
+
+            print("Запрос отправлен, ожидаем ответа...")
+            time.sleep(3)  # Ожидание ответа, можно улучшить
+        except Exception as e:
+            print(f"Ошибка при отправке сообщения: {e}")
+
+def interaction_menu(drivers, accounts):
+    while True:
+        print("\nМеню взаимодействия:")
+        print("1. Выбрать аккаунт для общения")
+        print("2. Вернуться в главное меню")
+
+        choice = input("Выберите действие: ").strip()
+
+        if choice == "1":
+            print("Доступные аккаунты:")
+            for i, email in enumerate(accounts.keys()):
+                print(f"{i + 1}. {email}")
+
+            account_choice = input("Введите номер аккаунта: ").strip()
+            if account_choice.isdigit() and 1 <= int(account_choice) <= len(drivers):
+                index = int(account_choice) - 1
+                print(f"Вы выбрали аккаунт: {list(accounts.keys())[index]}")
+                chat_with_account(drivers[index])
+            else:
+                print("Неверный выбор. Попробуйте снова.")
+
+        elif choice == "2":
+            break
+
+        else:
+            print("Неверный выбор. Попробуйте снова.")
+
 def menu():
     accounts = load_accounts()
     drivers = []  # Список для хранения активных браузеров
@@ -154,6 +207,9 @@ def menu():
                 open_site(driver, "https://chat.openai.com")
                 perform_login(driver, creds['email'], creds['password'])
                 drivers.append(driver)  # Сохраняем браузер
+
+            if drivers:
+                interaction_menu(drivers, accounts)
 
         elif choice == "3":
             email = input("Введите email для удаления: ").strip()

@@ -93,7 +93,7 @@ def perform_login(driver, email, password):
         print("Кнопка 'Continue' нажата после ввода пароля.")
 
         # Шаг 6: Ввести код из почты
-        code_input = WebDriverWait(driver, 20).until(
+        code_input = WebDriverWait(driver, 5).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, code_input_selector))
         )
         code = input("Введите код из почты: ")
@@ -122,7 +122,7 @@ def chat_with_bot():
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--incognito")
-    #options.add_argument("--headless=new")  # Включаем headless режим
+    options.add_argument("--headless=new")  # Включаем headless режим
     
     # Указываем виртуальный дисплей
     options.add_argument("--window-size=1920,1080")

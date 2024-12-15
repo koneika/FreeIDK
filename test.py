@@ -124,8 +124,32 @@ def perform_login(driver, email, password):
         driver.save_screenshot("error_screenshot.png")
         print("Скриншот сохранён: error_screenshot.png")
 
+def wait_for_stable_response(driver, old_count, timeout=30):
+    response_selector = "div.markdown.prose"
+    start_time = time.time()
+    stable_text = ""
+    last_text = ""
+    stable_count = 0
+
+    while time.time() - start_time < timeout:
+        responses = driver.find_elements(By.CSS_SELECTOR, response_selector)
+        if len(responses) > old_count:
+            current_text = responses[-1].text.strip()
+            if current_text == last_text and current_text.strip() != "":
+                stable_count += 1
+                if stable_count >= 2:
+                    stable_text = current_text
+                    break
+            else:
+                stable_count = 0
+            last_text = current_text
+        time.sleep(1)
+
+    return stable_text if stable_text else "Ответ не получен или время ожидания истекло."
+
 def chat_with_account(driver):
     input_selector = "div.ProseMirror[contenteditable='true']"
+    response_selector = "div.markdown.prose"
     while True:
         user_input = input("Ваш запрос (введите 'exit' для выхода): ").strip()
         if user_input.lower() == 'exit':
@@ -143,10 +167,16 @@ def chat_with_account(driver):
             send_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, send_button_selector))
             )
-            send_button.click()
 
+            old_responses = driver.find_elements(By.CSS_SELECTOR, response_selector)
+            old_count = len(old_responses)
+
+            send_button.click()
             print("Запрос отправлен, ожидаем ответа...")
-            time.sleep(3)  # Ожидание ответа, можно улучшить
+
+            bot_response = wait_for_stable_response(driver, old_count)
+            print(f"Ответ бота: {bot_response}")
+
         except Exception as e:
             print(f"Ошибка при отправке сообщения: {e}")
 
